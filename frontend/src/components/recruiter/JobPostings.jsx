@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import JobDetailView from './JobDetailView';
 
 export default function JobPostings() {
   const [showModal, setShowModal] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
   
   const [newJob, setNewJob] = useState({
     title: '',
@@ -51,71 +53,67 @@ export default function JobPostings() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-semibold">Loading your jobs...</div>;
+    return <div className="p-8 text-center text-gray-500 font-semibold uppercase tracking-widest text-[11px] animate-pulse">Synchronizing your dashboard...</div>;
   }
 
-  const activeJobs = jobs.filter(j => j.status === 'open').length;
-  const totalApplicants = jobs.reduce((sum, job) => sum + parseInt(job.resumes_count || 0), 0);
+  if (selectedJob) {
+    return <JobDetailView job={selectedJob} onBack={() => setSelectedJob(null)} />;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-6 shadow text-center">
-          <div className="text-3xl mb-2">💼</div>
-          <div className="text-3xl font-bold text-indigo-600">{activeJobs}</div>
-          <div className="text-gray-600 text-sm">Active Jobs</div>
-        </div>
-        <div className="bg-white rounded-lg p-6 shadow text-center">
-          <div className="text-3xl mb-2">📄</div>
-          <div className="text-3xl font-bold text-indigo-600">{totalApplicants}</div>
-          <div className="text-gray-600 text-sm">Applicants</div>
-        </div>
-        <div className="bg-white rounded-lg p-6 shadow text-center">
-          <div className="text-3xl mb-2">⭐</div>
-          <div className="text-3xl font-bold text-indigo-600">-</div>
-          <div className="text-gray-600 text-sm">Top Candidates</div>
-        </div>
-        <div className="bg-white rounded-lg p-6 shadow text-center">
-          <div className="text-3xl mb-2">🎯</div>
-          <div className="text-3xl font-bold text-indigo-600">-</div>
-          <div className="text-gray-600 text-sm">In Interview</div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Job Postings</h2>
+    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto">
+      <div className="bg-white rounded-[1.5rem] shadow-sm p-8 border border-[#e5e7eb] relative overflow-hidden">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-[19px] font-extrabold text-[#111827] tracking-tight">Manage Job Postings</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold px-6 py-2 rounded-lg hover:shadow-lg transition"
+            className="bg-gradient-to-r from-[#6366f1] to-[#7c3aed] text-white font-bold px-6 py-2.5 rounded-[0.7rem] hover:shadow-lg transition-transform hover:scale-[1.02]"
           >
-            + Create Job
+            + Create Job Posting
           </button>
         </div>
 
         <div className="space-y-4">
           {jobs.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">No jobs created yet. Click "+ Create Job" to get started.</div>
+            <div className="text-center text-gray-500 py-8 font-bold">No jobs created yet. Click "+ Create Job Posting" to get started.</div>
           ) : (
-            jobs.map((job) => (
-              <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:border-indigo-400 hover:shadow transition cursor-pointer">
+            jobs.map((job) => {
+              const diffTime = Math.abs(new Date() - new Date(job.created_at));
+              const daysAgo = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              const applicantsCount = job.resumes_count || 0;
+              const qualifiedCount = job.qualified_count || 0;
+              const inProgressCount = job.in_progress_count || 0;
+              const locationStr = job.location || 'Remote';
+              const salaryStr = job.salary_range || 'Salary not provided';
+
+              return (
+              <div 
+                key={job.id} 
+                onClick={() => setSelectedJob(job)}
+                className="border border-[#e5e7eb] rounded-2xl p-6 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer bg-white group"
+              >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-bold text-lg text-gray-900">{job.title}</h3>
-                    <p className="text-sm text-gray-600">{job.location || 'Location Not Specified'}</p>
-                    <p className="text-xs text-gray-400 mt-1">Posted {new Date(job.created_at).toLocaleDateString()}</p>
+                    <h3 className="font-bold text-[#111827] group-hover:text-indigo-600 transition-colors">{job.title}</h3>
+                    <p className="text-[13px] text-[#6b7280] mt-1.5 mb-4 font-medium">
+                      Posted {daysAgo === 0 ? 'today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`} | {locationStr} | {salaryStr}
+                    </p>
                   </div>
+                  <div className="text-gray-300 font-bold group-hover:text-indigo-600 transition-colors">View Pipeline →</div>
                 </div>
-                <div className="flex gap-3 flex-wrap">
-                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
-                    {job.resumes_count || 0} Applicants
+                <div className="flex gap-4 flex-wrap">
+                  <span className="bg-[#ccfbf1] text-[#0f766e] px-4 py-1.5 rounded-full text-[12px] font-bold">
+                    {applicantsCount} Applicants
                   </span>
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold capitalize">
-                    Status: {job.status}
+                  <span className="bg-[#ede9fe] text-[#6d28d9] px-4 py-1.5 rounded-full text-[12px] font-bold">
+                    {qualifiedCount} Qualified
+                  </span>
+                  <span className="bg-[#ffedd5] text-[#c2410c] px-4 py-1.5 rounded-full text-[12px] font-bold">
+                    {inProgressCount} In Progress
                   </span>
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
       </div>

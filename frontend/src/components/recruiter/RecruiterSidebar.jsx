@@ -12,7 +12,6 @@ export default function RecruiterSidebar({ activeTab, onTabChange, onLogout }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'jobs', label: 'Job Postings', icon: '💼' },
-    { id: 'applications', label: 'Applications', icon: '📧' },
     { id: 'screening', label: 'AI Screening', icon: '🤖' },
     { id: 'candidates', label: 'Ranked Candidates', icon: '👥' },
     { id: 'comparison', label: 'Comparison', icon: '⚖️' },

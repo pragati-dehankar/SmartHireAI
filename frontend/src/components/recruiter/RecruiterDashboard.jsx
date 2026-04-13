@@ -8,6 +8,7 @@ import RankedCandidates from './RankedCandidates';
 import Comparison from './Comparison';
 import FairnessReport from './FairnessReport';
 import ExportReports from './ExportReports';
+import DashboardOverview from './DashboardOverview';
 
 export default function RecruiterDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,7 +17,7 @@ export default function RecruiterDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <JobPostings />;
+        return <DashboardOverview />;
       case 'jobs':
         return <JobPostings />;
       case 'applications':
@@ -32,7 +33,7 @@ export default function RecruiterDashboard() {
       case 'export':
         return <ExportReports />;
       default:
-        return <JobPostings />;
+        return <DashboardOverview />;
     }
   };
 

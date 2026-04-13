@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NeuralBackground from '../home/NeuralBackground';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('demo@techcorp.com');
@@ -54,8 +55,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#112240] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+      <NeuralBackground />
+      
+      <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl p-8 w-full max-w-md relative z-10 border border-gray-100">
         {/* Role identifier bar */}
         <div className={`absolute top-0 left-0 right-0 h-2 ${roleMode === 'recruiter' ? 'bg-blue-600' : 'bg-indigo-600'}`}></div>
         
