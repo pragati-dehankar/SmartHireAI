@@ -18,6 +18,20 @@ export default function JobPostings() {
   });
   const [creating, setCreating] = useState(false);
 
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await apiClient.get('/api/jobs');
+        setJobs(res.data);
+      } catch (err) {
+        console.error("Error fetching jobs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, []);
+
   const handleCreateJob = async (e) => {
     e.preventDefault();
     setCreating(true);
@@ -38,22 +52,13 @@ export default function JobPostings() {
     }
   };
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const res = await apiClient.get('/api/jobs');
-        setJobs(res.data);
-      } catch (err) {
-        console.error("Error fetching jobs:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchJobs();
-  }, []);
-
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 font-semibold uppercase tracking-widest text-[11px] animate-pulse">Synchronizing your dashboard...</div>;
+    return (
+      <div className="p-12 text-center h-[60vh] flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin mb-4" />
+        <div className="font-black text-slate-700 text-lg uppercase tracking-widest">Synchronizing Jobs...</div>
+      </div>
+    );
   }
 
   if (selectedJob) {
@@ -61,154 +66,222 @@ export default function JobPostings() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto">
-      <div className="bg-white rounded-[1.5rem] shadow-sm p-8 border border-[#e5e7eb] relative overflow-hidden">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-[19px] font-extrabold text-[#111827] tracking-tight">Manage Job Postings</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-gradient-to-r from-[#6366f1] to-[#7c3aed] text-white font-bold px-6 py-2.5 rounded-[0.7rem] hover:shadow-lg transition-transform hover:scale-[1.02]"
-          >
-            + Create Job Posting
-          </button>
+    <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
+      {/* ── Header ── */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-1">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Job Postings</h2>
+            <div className="bert-live-indicator">
+              <div className="dot" /> BERT Engine Active
+            </div>
+          </div>
+          <p className="text-slate-500 font-medium mt-1">Manage, monitor, and scale your technical hiring pipeline.</p>
         </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="btn-primary flex items-center gap-2 group"
+          style={{ padding: '14px 28px' }}
+        >
+          <span className="text-xl group-hover:rotate-90 transition-transform duration-300">+</span>
+          Create New Position
+        </button>
+      </div>
 
-        <div className="space-y-4">
-          {jobs.length === 0 ? (
-            <div className="text-center text-gray-500 py-8 font-bold">No jobs created yet. Click "+ Create Job Posting" to get started.</div>
-          ) : (
-            jobs.map((job) => {
-              const diffTime = Math.abs(new Date() - new Date(job.created_at));
-              const daysAgo = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-              const applicantsCount = job.resumes_count || 0;
-              const qualifiedCount = job.qualified_count || 0;
-              const inProgressCount = job.in_progress_count || 0;
-              const locationStr = job.location || 'Remote';
-              const salaryStr = job.salary_range || 'Salary not provided';
+      {/* ── Jobs Grid ── */}
+      <div className="grid grid-cols-1 gap-6">
+        {jobs.length === 0 ? (
+          <div className="card p-20 text-center flex flex-col items-center justify-center border-dashed border-2">
+            <div className="text-6xl mb-6">📂</div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">No active job postings</h3>
+            <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">Your hiring pipeline is empty. Create your first job posting to start receiving AI-analyzed candidates.</p>
+            <button
+               onClick={() => setShowModal(true)}
+               className="text-indigo-600 font-bold hover:underline"
+            >
+               Get started by creating a job posting →
+            </button>
+          </div>
+        ) : (
+          jobs.map((job) => {
+            const applicantsCount = job.resumes_count || 0;
+            const qualifiedCount = job.qualified_count || 0;
+            const inProgressCount = job.in_progress_count || 0;
 
-              return (
+            return (
               <div 
                 key={job.id} 
                 onClick={() => setSelectedJob(job)}
-                className="border border-[#e5e7eb] rounded-2xl p-6 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer bg-white group"
+                className="card card-interactive p-8 group flex flex-col md:flex-row justify-between gap-6"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-[#111827] group-hover:text-indigo-600 transition-colors">{job.title}</h3>
-                    <p className="text-[13px] text-[#6b7280] mt-1.5 mb-4 font-medium">
-                      Posted {daysAgo === 0 ? 'today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`} | {locationStr} | {salaryStr}
-                    </p>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{job.title}</h3>
+                      <div className="flex items-center gap-3 mt-1">
+                         <span className="text-sm font-bold text-slate-400 flex items-center gap-1.5">
+                            📍 {job.location || 'Remote'}
+                         </span>
+                         <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                         <span className="text-sm font-bold text-slate-400 flex items-center gap-1.5">
+                            💰 {job.salary_range || 'Competitive'}
+                         </span>
+                      </div>
+                    </div>
+                    <div className="text-xs font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-indigo-400 transition-colors">
+                      View Insights →
+                    </div>
                   </div>
-                  <div className="text-gray-300 font-bold group-hover:text-indigo-600 transition-colors">View Pipeline →</div>
+                  
+                  <div className="flex gap-4 flex-wrap mt-6">
+                    <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-indigo-50 border border-indigo-100">
+                      <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                      <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">{applicantsCount} Applicants</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-100">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                      <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">{qualifiedCount} Qualified</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-amber-50 border border-amber-100">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                      <span className="text-xs font-black text-amber-700 uppercase tracking-wider">{inProgressCount} Ready for Interview</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-4 flex-wrap">
-                  <span className="bg-[#ccfbf1] text-[#0f766e] px-4 py-1.5 rounded-full text-[12px] font-bold">
-                    {applicantsCount} Applicants
-                  </span>
-                  <span className="bg-[#ede9fe] text-[#6d28d9] px-4 py-1.5 rounded-full text-[12px] font-bold">
-                    {qualifiedCount} Qualified
-                  </span>
-                  <span className="bg-[#ffedd5] text-[#c2410c] px-4 py-1.5 rounded-full text-[12px] font-bold">
-                    {inProgressCount} In Progress
-                  </span>
+
+                <div className="flex flex-col justify-between items-end gap-4 border-l pl-8 border-slate-50 md:min-w-[140px]">
+                   <div className="text-right">
+                      <div className="text-2xl font-black text-slate-900">{Math.round((qualifiedCount / (applicantsCount || 1)) * 100)}%</div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Quality Score</div>
+                   </div>
+                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-600 rounded-full animate-progress" style={{ width: `${(qualifiedCount / (applicantsCount || 1)) * 100}%` }} />
+                   </div>
+                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Updated {new Date(job.created_at).toLocaleDateString()}
+                   </div>
                 </div>
               </div>
-            )})
-          )}
-        </div>
+            );
+          })
+        )}
       </div>
 
+      {/* ── Create Job Modal ── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-2">Create New Job</h2>
-            <form onSubmit={handleCreateJob} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  value={newJob.title}
-                  onChange={(e) => setNewJob({...newJob, title: e.target.value})}
-                  placeholder="e.g. Senior Software Engineer"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                <textarea
-                  required
-                  rows="4"
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  value={newJob.description}
-                  onChange={(e) => setNewJob({...newJob, description: e.target.value})}
-                  placeholder="Job responsibilities and requirements..."
-                />
-              </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in shadow-2xl">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-scale-in">
+            {/* Header */}
+            <div className="p-8 pb-4 border-b border-slate-50 bg-slate-50/50">
+               <div className="flex justify-between items-start mb-2">
+                 <div>
+                   <span className="bert-badge mb-3 inline-block">Post New Role</span>
+                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Define Opportunity</h2>
+                 </div>
+                 <button 
+                   onClick={() => setShowModal(false)}
+                   className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shadow-sm"
+                 >✕</button>
+               </div>
+               <p className="text-slate-500 font-medium">Define the core requirements for BERT to analyze potential candidates.</p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Required Skills (comma separated)</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  value={newJob.required_skills}
-                  onChange={(e) => setNewJob({...newJob, required_skills: e.target.value})}
-                  placeholder="e.g. React, Node.js, Python"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto p-8 pt-6">
+              <form onSubmit={handleCreateJob} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience Required</label>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Position Title</label>
                   <input
                     type="text"
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    value={newJob.experience_years}
-                    onChange={(e) => setNewJob({...newJob, experience_years: e.target.value})}
-                    placeholder="e.g. 3-5 years"
+                    required
+                    className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all"
+                    value={newJob.title}
+                    onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+                    placeholder="e.g. Senior Software Engineer"
                   />
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Location</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all"
+                      value={newJob.location}
+                      onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                      placeholder="e.g. Remote, New York"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Experience Range</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all"
+                      value={newJob.experience_years}
+                      onChange={(e) => setNewJob({...newJob, experience_years: e.target.value})}
+                      placeholder="e.g. 5+ years"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Salary Expectation</label>
                   <input
                     type="text"
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    value={newJob.location}
-                    onChange={(e) => setNewJob({...newJob, location: e.target.value})}
-                    placeholder="e.g. Remote, New York"
+                    className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all"
+                    value={newJob.salary_range}
+                    onChange={(e) => setNewJob({...newJob, salary_range: e.target.value})}
+                    placeholder="e.g. $140,000 - $180,000"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Salary Range</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  value={newJob.salary_range}
-                  onChange={(e) => setNewJob({...newJob, salary_range: e.target.value})}
-                  placeholder="e.g. $100k - $120k"
-                />
-              </div>
+                <div>
+                   <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Required Expertise (Keywords)</label>
+                   <input
+                     type="text"
+                     className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all"
+                     value={newJob.required_skills}
+                     onChange={(e) => setNewJob({...newJob, required_skills: e.target.value})}
+                     placeholder="React, Node.js, Python, AWS (comma separated)"
+                   />
+                   <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wide">BERT will use these for dense vector comparison.</p>
+                </div>
 
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {creating ? 'Creating...' : 'Create Job'}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-2.5">Role Description & Narrative</label>
+                  <textarea
+                    required
+                    rows="4"
+                    className="w-full border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 focus:outline-none transition-all resize-none"
+                    value={newJob.description}
+                    onChange={(e) => setNewJob({...newJob, description: e.target.value})}
+                    placeholder="Describe the role, impact, and technical ecosystem..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-8 py-4 text-slate-400 font-black text-sm hover:text-slate-900 transition-colors uppercase tracking-widest"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="btn-primary rounded-2xl px-12 py-4 shadow-xl"
+                  >
+                    {creating ? (
+                      <span className="flex items-center gap-2">
+                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                         Finalizing...
+                      </span>
+                    ) : 'Publish Position'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

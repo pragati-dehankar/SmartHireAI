@@ -2,8 +2,129 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
 import ApplyModal from './ApplyModal';
 
+function JobDetailModal({ job, onClose, onApply }) {
+   if (!job) return null;
+
+   return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+         <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-scale-in border border-slate-100">
+
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10 shadow-sm">
+               <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-slate-100 italic font-black text-indigo-600">
+                     {job.recruiter?.company?.charAt(0) || 'C'}
+                  </div>
+                  <div>
+                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">{job.title}</h2>
+                     <p className="text-sm text-indigo-600 font-bold uppercase tracking-wider">{job.recruiter?.company || 'Industry Partner'} · {job.location || 'Remote'}</p>
+                  </div>
+               </div>
+               <div className="flex gap-3">
+                  <button
+                     onClick={onClose}
+                     className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shadow-sm"
+                  >✕</button>
+               </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-slate-50/30">
+               <div className="max-w-3xl mx-auto space-y-8">
+                  {/* Job Basics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     <div className="card p-4 bg-white border-none shadow-sm text-center">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Salary</div>
+                        <div className="text-sm font-black text-slate-900">{job.salary_range || '$120K+'}</div>
+                     </div>
+                     <div className="card p-4 bg-white border-none shadow-sm text-center">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Experience</div>
+                        <div className="text-sm font-black text-slate-900">{job.experience_years || '3-5 yrs'}</div>
+                     </div>
+                     <div className="card p-4 bg-white border-none shadow-sm text-center">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Type</div>
+                        <div className="text-sm font-black text-slate-900">Full Time</div>
+                     </div>
+                     <div className="card p-4 bg-white border-none shadow-sm text-center">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Match</div>
+                        <div className="text-sm font-black text-emerald-600">High Trust</div>
+                     </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-4">
+                     <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <span>📄</span> Mission & Role
+                     </h3>
+                     <p className="text-slate-600 font-medium leading-relaxed bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                        {job.description || "We are looking for a forward-thinking technologist to join our core team. You will be responsible for building high-scale architecture and influencing the technical trajectory of our primary platform. Our culture values deep technical expertise, curiosity, and iterative development."}
+                     </p>
+                  </div>
+
+                  {/* Capabilities */}
+                  <div className="space-y-4">
+                     <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <span>⚡</span> Critical Skills
+                     </h3>
+                     <div className="flex flex-wrap gap-2">
+                        {(job.required_skills || ['React', 'Next.js', 'Distributed Systems', 'Python', 'AWS']).map((s, i) => (
+                           <span key={i} className="tag tag-indigo py-2 px-5 text-sm">{s}</span>
+                        ))}
+                     </div>
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 pl-1">These keywords are prioritized by the BERT semantic parser.</p>
+                  </div>
+
+                  {/* AI Insight Card */}
+                  <div className="bg-indigo-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                     <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-6">
+                           <span className="text-2xl">⬡</span>
+                           <h3 className="text-lg font-black tracking-tight">BERT Match Insight</h3>
+                           <span className="bert-badge" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}>Live Analysis</span>
+                        </div>
+                        <p className="text-indigo-100 text-sm leading-relaxed mb-6">
+                           "Based on your profile, BERT identifies a 94.2% semantic alignment. Your experience with <strong>high-scale React architectures</strong> directly matches the core of this position's requirements."
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="bg-white/5 rounded-2xl p-4 border border-white/10 uppercase tracking-widest">
+                              <div className="text-[9px] font-black text-indigo-300">Confidence</div>
+                              <div className="text-xl font-black">High</div>
+                           </div>
+                           <div className="bg-white/5 rounded-2xl p-4 border border-white/10 uppercase tracking-widest">
+                              <div className="text-[9px] font-black text-indigo-300">Risk Level</div>
+                              <div className="text-xl font-black">Low</div>
+                           </div>
+                        </div>
+                     </div>
+                     {/* Background decoration */}
+                     <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl -mr-24 -mt-24" />
+                  </div>
+               </div>
+            </div>
+
+            {/* Modal Sticky Footer */}
+            <div className="p-8 bg-white border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+               <div>
+                  <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Deadline approaching</div>
+                  <div className="text-sm font-bold text-slate-900">Positions usually fill in 14 days</div>
+               </div>
+               <div className="flex gap-4 w-full md:w-auto">
+                  <button className="flex-1 md:flex-none px-8 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-600 text-sm hover:bg-slate-50 transition cursor-not-allowed uppercase tracking-wider">🔖 Save</button>
+                  <button
+                     onClick={() => onApply(job)}
+                     className="flex-1 md:flex-none btn-primary px-12 py-4 rounded-2xl shadow-xl shadow-indigo-100"
+                  >Submit Application</button>
+               </div>
+            </div>
+         </div>
+      </div>
+   );
+}
+
 export default function BrowseJobs() {
    const [jobs, setJobs] = useState([]);
+   const [filteredJobs, setFilteredJobs] = useState([]);
+   const [searchQuery, setSearchQuery] = useState('');
    const [loading, setLoading] = useState(true);
    const [selectedJob, setSelectedJob] = useState(null);
    const [applyingJob, setApplyingJob] = useState(null);
@@ -13,6 +134,7 @@ export default function BrowseJobs() {
          try {
             const res = await apiClient.get('/api/jobs');
             setJobs(res.data);
+            setFilteredJobs(res.data);
          } catch (err) {
             console.error("Error fetching jobs:", err);
          } finally {
@@ -22,179 +144,106 @@ export default function BrowseJobs() {
       fetchJobs();
    }, []);
 
-   if (loading) return <div className="p-8 text-center text-gray-500 font-semibold animate-pulse">Scanning the market for you...</div>;
+   useEffect(() => {
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) {
+         setFilteredJobs(jobs);
+         return;
+      }
+      const filtered = jobs.filter(job =>
+         job.title.toLowerCase().includes(query) ||
+         job.description.toLowerCase().includes(query) ||
+         job.required_skills?.some(s => s.toLowerCase().includes(query))
+      );
+      setFilteredJobs(filtered);
+   }, [searchQuery, jobs]);
+
+   if (loading) return (
+      <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
+         <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+         <div className="font-black text-slate-400 text-xs uppercase tracking-[0.2em]">Scanning Opportunities</div>
+      </div>
+   );
 
    return (
-      <div className="animate-in fade-in duration-500 space-y-8 max-w-7xl mx-auto">
-         {/* PAGE HEADER */}
-         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-8 rounded-[1.5rem] shadow-sm border border-[#e5e7eb]">
-            <div>
-               <h2 className="text-[26px] font-extrabold text-[#111827] tracking-tight">Discover Your Next Role</h2>
-               <p className="text-[#6b7280] text-[15px] font-medium mt-1">AI-powered matching for top technical opportunities</p>
+      <div className="animate-fade-in space-y-8 max-w-6xl mx-auto">
+         {/* Page Header & Search */}
+         <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-50 gap-6">
+            <div className="flex-1">
+               <h2 className="text-3xl font-black text-slate-900 tracking-tight">Discover Opportunities</h2>
+               <p className="text-slate-500 font-medium mt-1">AI-powered matching for top-tier technical roles.</p>
             </div>
-            <div className="flex gap-3 w-full md:w-auto">
-               <div className="relative flex-1 md:w-72">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                  <input
-                     type="text"
-                     placeholder="Search roles, skills..."
-                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#e5e7eb] focus:ring-2 focus:ring-indigo-500 outline-none text-[14px] shadow-sm font-medium"
-                  />
-               </div>
-               <button className="bg-[#111827] text-white px-8 py-3 rounded-xl font-bold text-[14px] shadow-sm hover:bg-gray-800 transition">Filter</button>
+            <div className="flex gap-3 w-full md:w-[400px] relative">
+               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">🔍</span>
+               <input
+                  type="text"
+                  placeholder="Titles, companies, skills..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-4 rounded-2xl border-2 border-slate-50 bg-slate-50/50 focus:bg-white focus:border-indigo-600 outline-none text-sm transition-all font-bold group shadow-inner"
+               />
+               <button className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-black transition shrink-0">Filter</button>
             </div>
          </div>
 
-         {/* JOB GRID */}
+         {/* Job Cards */}
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
-            {jobs.length === 0 ? (
-               <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border border-dashed border-[#e5e7eb]">
-                  <div className="text-4xl mb-4">🔭</div>
-                  <h3 className="text-[17px] font-extrabold text-[#111827]">No active roles found</h3>
-                  <p className="text-[#6b7280] text-[14px] font-medium mt-1">Check back soon! Our AI is constantly sourcing new opportunities.</p>
+            {filteredJobs.length === 0 ? (
+               <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center">
+                  <div className="text-5xl mb-4 opacity-50">🔭</div>
+                  <h3 className="text-lg font-black text-slate-900">No active roles found</h3>
+                  <p className="text-slate-500 font-medium mt-1">Check back soon or broaden your search criteria.</p>
                </div>
             ) : (
-               jobs.map((job) => (
-               <div
-                  key={job.id}
-                  onClick={() => setSelectedJob(job)}
-                  className="group bg-white p-6 rounded-[2rem] border border-[#e5e7eb] hover:border-indigo-400 hover:shadow-xl transition-all duration-300 cursor-pointer relative"
-               >
-                  <div className="flex justify-between items-start mb-6">
-                     <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl border border-gray-100 group-hover:scale-110 transition-transform shadow-sm">
-                        🏢
+               filteredJobs.map((job) => (
+                  <div
+                     key={job.id}
+                     onClick={() => setSelectedJob(job)}
+                     className="group card card-interactive p-6 flex flex-col relative"
+                  >
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-slate-100 group-hover:scale-110 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                           🏢
+                        </div>
+                        <div className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border border-indigo-100">
+                           Top BERT Match
+                        </div>
                      </div>
-                     <div className="bg-[#f5f3ff] text-[#6366f1] px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm">
-                        {Math.round(85 + Math.random() * 10)}% Match
+
+                     <h3 className="font-black text-slate-900 text-xl tracking-tight leading-tight group-hover:text-indigo-600 transition-colors mb-1">{job.title}</h3>
+                     <p className="text-xs text-slate-400 font-bold mb-6">{job.recruiter?.company || 'Industry Partner Ltd.'} · {job.location || 'Remote'}</p>
+
+                     <div className="flex gap-2 mb-8 flex-wrap">
+                        {(job.required_skills?.slice(0, 3) || ['React', 'TypeScript', 'Node.js']).map((s, idx) => (
+                           <span key={idx} className="tag tag-indigo text-[10px] py-1 px-3 border-none">{s}</span>
+                        ))}
+                     </div>
+
+                     <div className="flex justify-between items-center pt-5 border-t border-slate-50 mt-auto">
+                        <div>
+                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 block">Expected</span>
+                           <span className="text-sm font-black text-slate-900">{job.salary_range || '$140K+'}</span>
+                        </div>
+                        <span className="text-indigo-600 font-black text-xs uppercase tracking-widest group-hover:translate-x-1 transition-transform">Details →</span>
                      </div>
                   </div>
-
-                  <h3 className="font-extrabold text-[#111827] text-[18px] tracking-tight group-hover:text-indigo-600 transition-colors uppercase leading-tight mb-2">{job.title}</h3>
-                  <p className="text-[14px] text-[#6b7280] font-bold mb-4">{job.recruiter?.company || 'CloudTech Systems'} · {job.location}</p>
-
-                  <div className="flex gap-2 mb-6 flex-wrap">
-                     {(job.required_skills?.slice(0, 3) || ['React', 'Next.js', 'TS']).map((s, idx) => (
-                        <span key={idx} className="bg-gray-50 text-gray-500 px-3 py-1 rounded-lg text-[11px] font-bold border border-gray-100">{s}</span>
-                     ))}
-                  </div>
-
-                  <div className="flex justify-between items-center py-4 border-t border-gray-50 mt-auto">
-                     <span className="text-[14px] font-black text-indigo-600 tracking-tight">{job.salary_range || '$120K - $160K'}</span>
-                     <span className="text-indigo-600 font-bold text-[13px] group-hover:translate-x-1 transition-transform">View Details →</span>
-                  </div>
-               </div>
-            )))}
+               )))}
          </div>
 
-         {/* DETAILS MODAL */}
-         {selectedJob && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-md animate-in fade-in duration-300">
-               <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col scale-in-95 animate-in zoom-in-95 duration-300 border border-white/20">
-
-                  {/* Modal Header Actions */}
-                  <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-white z-10 shadow-sm">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-2xl border border-gray-100 italic font-black text-indigo-600">
-                           {selectedJob.recruiter?.company?.charAt(0) || 'C'}
-                        </div>
-                        <div>
-                           <h2 className="text-[20px] font-extrabold text-[#111827] tracking-tight">{selectedJob.title}</h2>
-                           <p className="text-[13px] text-[#6366f1] font-bold">{selectedJob.recruiter?.company} · {selectedJob.location}</p>
-                        </div>
-                     </div>
-                     <div className="flex gap-3">
-                        <button className="px-6 py-2.5 rounded-xl border border-[#e5e7eb] font-bold text-[13px] text-[#4b5563] hover:bg-gray-50 transition flex items-center gap-2">
-                           🔖 Save Job
-                        </button>
-                        <button 
-                           onClick={() => {
-                              setApplyingJob(selectedJob);
-                              setSelectedJob(null);
-                           }}
-                           className="bg-indigo-600 text-white px-8 py-2.5 rounded-xl font-extrabold text-[13px] hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
-                        >
-                           Apply Now
-                        </button>
-                        <button
-                           onClick={() => setSelectedJob(null)}
-                           className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition"
-                        >
-                           ✕
-                        </button>
-                     </div>
-                  </div>
-
-                  {/* Modal Content */}
-                  <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-[#fcfcfd]">
-
-                     <div className="max-w-3xl mx-auto space-y-10">
-                        {/* Job Intro */}
-                        <div className="space-y-4">
-                           <p className="text-[16px] text-[#4b5563] leading-relaxed font-semibold">
-                              We are building next-generation developer tools and need a passionate {selectedJob.title} to craft exceptional user experiences with our product and design teams.
-                              You will work on high-scale systems and influence the future of our technical architecture alongside a world-class engineering team.
-                           </p>
-                           <div className="flex flex-wrap gap-2 pt-2">
-                              {(selectedJob.required_skills || ['React', 'JavaScript', 'TypeScript', 'Next.js', 'CSS', 'REST APIs']).map((skill, i) => (
-                                 <span key={i} className="bg-white text-[#475569] border border-[#e5e7eb] px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm">{skill}</span>
-                              ))}
-                           </div>
-                        </div>
-
-                        {/* AI Reasoning (Screenshot Match) */}
-                        <div className="bg-[#f0f9ff] rounded-[2rem] p-8 border border-[#e0f2fe] shadow-inner shadow-indigo-50/50">
-                           <div className="flex items-center gap-3 mb-8">
-                              <span className="text-3xl">🧠</span>
-                              <h3 className="text-[19px] font-extrabold text-[#0369a1] tracking-tight">Why You Match This Role</h3>
-                              <span className="bg-[#0ea5e9]/10 text-[#0ea5e9] border border-[#0ea5e9]/20 px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-wider">Context Analysis</span>
-                           </div>
-
-                           <div className="space-y-4">
-                              {[
-                                 { title: 'Skill Semantic Match', desc: `React + TypeScript aligned 96% with JD via BERT semantic analysis`, tag: 'Strong', tagColor: 'emerald', icon: '⚡' },
-                                 { title: 'Project Portfolio', desc: '3 of your projects demonstrate production-scale React directly', tag: 'Strong', tagColor: 'emerald', icon: '📂' },
-                                 { title: 'Work Style', desc: 'Remote-first preference matches their culture signal', tag: 'Good', tagColor: 'blue', icon: '🌐' },
-                                 { title: 'Experience Band', desc: '4 yrs fits their 3-5 yr requirement precisely', tag: 'Good', tagColor: 'blue', icon: '📊' }
-                              ].map((reason, idx) => (
-                                 <div key={idx} className="bg-white border border-[#e0f2fe] p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-                                    <div className="flex justify-between items-start mb-4">
-                                       <div className="flex items-center gap-3">
-                                          <span className="text-xl group-hover:scale-110 transition-transform">{reason.icon}</span>
-                                          <h4 className="text-[15px] font-black text-[#111827] tracking-tight">{reason.title}</h4>
-                                       </div>
-                                       <span className={`text-[10px] font-black px-3 py-1 rounded-lg ${reason.tagColor === 'emerald' ? 'bg-[#f0fdf4] text-[#166534]' : 'bg-[#eff6ff] text-[#1d4ed8]'
-                                          }`}>{reason.tag}</span>
-                                    </div>
-                                    <p className="text-[14px] text-[#64748b] leading-relaxed font-bold">{reason.desc}</p>
-                                 </div>
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Modal Sticky Footer */}
-                  <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center items-center gap-3">
-                     <span className="text-[13px] font-bold text-gray-500">Ready to take the next step?</span>
-                     <button 
-                        onClick={() => {
-                           setApplyingJob(selectedJob);
-                           setSelectedJob(null);
-                        }}
-                        className="bg-[#111827] text-white px-10 py-3 rounded-xl font-bold text-[14px] hover:bg-black transition shadow-lg"
-                     >
-                        Submit Application Now
-                     </button>
-                  </div>
-               </div>
-            </div>
-         )}
+         <JobDetailModal
+            job={selectedJob}
+            onClose={() => setSelectedJob(null)}
+            onApply={(job) => {
+               setApplyingJob(job);
+               setSelectedJob(null);
+            }}
+         />
 
          {applyingJob && (
-            <ApplyModal 
-               job={applyingJob} 
-               onClose={() => setApplyingJob(null)} 
-               onSuccess={() => alert("Application submitted successfully!")}
+            <ApplyModal
+               job={applyingJob}
+               onClose={() => setApplyingJob(null)}
+               onSuccess={() => { }}
             />
          )}
       </div>

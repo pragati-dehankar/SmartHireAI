@@ -8,7 +8,15 @@ import CandidateDashboard from './components/candidate/CandidateDashboard';
 import LandingPage from './components/home/LandingPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loadingInitial } = useAuth();
+
+  if (loadingInitial) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;

@@ -1,6 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
 
+function AppCard({ app, idx }) {
+   const score = Math.round(app.score || 0);
+   const status = app.status?.toLowerCase();
+   
+   const getStatusInfo = (s) => {
+      if (s === 'shortlisted' || s === 'qualified') return { label: 'Shortlisted', color: 'emerald', icon: '⭐' };
+      if (s === 'interview') return { label: 'Interview Scheduled', color: 'indigo', icon: '📅' };
+      if (s === 'rejected' || s === 'not selected') return { label: 'Not Selected', color: 'rose', icon: '✕' };
+      return { label: 'Under Review', color: 'slate', icon: '⏳' };
+   };
+
+   const info = getStatusInfo(status);
+
+   return (
+      <div 
+         className="card card-interactive p-6 flex flex-col md:flex-row justify-between items-center group animate-fade-up"
+         style={{ animationDelay: `${idx * 0.05}s` }}
+      >
+         <div className="flex gap-6 items-center flex-1">
+            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-3xl font-black transition-all duration-300 group-hover:scale-110 shadow-sm border border-slate-50 ${status === 'shortlisted' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-300'}`}>
+               {app.company?.charAt(0) || '🏢'}
+            </div>
+            <div>
+               <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{app.jobTitle}</h3>
+                  <span className="bert-badge">BERT Scored</span>
+               </div>
+               <p className="text-sm text-slate-400 font-bold mb-3">{app.company} · {app.location} · {app.salary_range || '$140K+'}</p>
+               <div className="flex items-center gap-4">
+                  <span className={`tag tag-${info.color} px-4 py-1.5 border-none shadow-sm`}>
+                     {info.icon} {info.label}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                     Applied {new Date(app.uploaded_at).toLocaleDateString()}
+                  </span>
+               </div>
+            </div>
+         </div>
+
+         <div className="flex items-center gap-10 mt-6 md:mt-0">
+            <div className="text-right">
+               <div className={`text-3xl font-black ${score >= 75 ? 'text-emerald-500' : score >= 50 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  {score}%
+               </div>
+               <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Match Rank</div>
+               <div className="w-24 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full bg-indigo-600 rounded-full animate-progress" style={{ width: `${score}%` }} />
+               </div>
+            </div>
+            <div className="w-px h-12 bg-slate-50 hidden md:block" />
+            <div className="text-indigo-600 font-black text-xs uppercase tracking-widest group-hover:translate-x-1 transition-transform">
+               Tracker →
+            </div>
+         </div>
+      </div>
+   );
+}
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,89 +79,59 @@ export default function Applications() {
   }, []);
 
   const filteredApps = applications.filter(app => {
+    const s = app.status?.toLowerCase();
     if (filter === 'all') return true;
-    if (filter === 'shortlisted') return app.status === 'shortlisted' || app.status === 'qualified';
-    if (filter === 'under_review') return app.status === 'applied' || !app.status;
-    if (filter === 'interview') return app.status === 'interview';
+    if (filter === 'shortlisted') return s === 'shortlisted' || s === 'qualified';
+    if (filter === 'under_review') return s === 'applied' || !s || s === 'reviewed';
+    if (filter === 'interview') return s === 'interview';
     return true;
   });
 
-  const getStatusStyle = (status) => {
-    const s = status?.toLowerCase();
-    if (s === 'shortlisted' || s === 'qualified') return 'bg-[#f0fdf4] text-[#166534] border-[#dcfce7]';
-    if (s === 'interview') return 'bg-[#fef9c3] text-[#854d0e] border-[#fef08a]';
-    if (s === 'rejected' || s === 'not selected') return 'bg-[#fef2f2] text-[#991b1b] border-[#fee2e2]';
-    return 'bg-[#f0f9ff] text-[#0369a1] border-[#e0f2fe]';
-  };
-
-  if (loading) return <div className="p-8 text-center text-gray-500 font-semibold animate-pulse">Syncing your application history...</div>;
+  if (loading) return (
+     <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+        <div className="font-black text-slate-400 text-xs uppercase tracking-[0.2em]">Retrieving Pipeline</div>
+     </div>
+  );
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-6xl mx-auto">
-      {/* PAGE HEADER & FILTERS */}
-      <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-[1.5rem] shadow-sm border border-[#e5e7eb]">
-        <h2 className="text-[22px] font-extrabold text-[#111827] tracking-tight">All Applications ({applications.length})</h2>
-        <div className="flex gap-2">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'shortlisted', label: 'Shortlisted' },
-            { id: 'under_review', label: 'Under Review' },
-            { id: 'interview', label: 'Interview' }
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-5 py-2 rounded-full text-[12px] font-extrabold transition-all border ${filter === f.id
-                  ? 'bg-[#111827] text-white border-[#111827]'
-                  : 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] hover:bg-gray-50'
+    <div className="animate-fade-in space-y-8 max-w-6xl mx-auto">
+      {/* Header Panel */}
+      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-50 gap-6">
+         <div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Application Pipeline</h2>
+            <p className="text-slate-500 font-medium mt-1">Manage all your active and historic job applications.</p>
+         </div>
+         <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'shortlisted', label: 'Shortlisted' },
+              { id: 'under_review', label: 'Reviewing' },
+              { id: 'interview', label: 'Interviews' }
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                  filter === f.id ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-indigo-500'
                 }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+              >
+                {f.label}
+              </button>
+            ))}
+         </div>
       </div>
 
       <div className="space-y-4">
         {filteredApps.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-[2rem] border border-[#e5e7eb] border-dashed">
-            <div className="text-5xl mb-4 grayscale">📄</div>
-            <h3 className="text-[18px] font-extrabold text-[#111827]">No applications found here</h3>
-            <p className="text-[#6b7280] text-[14px] mt-2">Try changing your filters or browse new opportunities.</p>
+          <div className="card p-20 text-center flex flex-col items-center justify-center border-dashed border-2 opacity-50">
+            <div className="text-5xl mb-6">📭</div>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest">No applications found</h3>
+            <p className="text-slate-400 font-medium mt-2">Start your search to see your pipeline grow.</p>
           </div>
         ) : (
-          filteredApps.map((app) => (
-            <div
-              key={app.id}
-              className="bg-white p-6 rounded-[1.5rem] border border-[#e5e7eb] hover:border-indigo-400 hover:shadow-md transition-all duration-300 flex justify-between items-center group cursor-pointer"
-            >
-              <div className="flex gap-6 items-center">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl border border-gray-100 group-hover:scale-110 transition-transform">
-                  {app.company?.charAt(0) || '🏢'}
-                </div>
-                <div>
-                  <h3 className="text-[17px] font-extrabold text-[#111827] tracking-tight">{app.jobTitle}</h3>
-                  <p className="text-[13px] text-[#6b7280] font-medium mt-0.5">{app.company} · {app.location} · $120K–$160K</p>
-                  <div className="flex items-center gap-3 mt-3">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusStyle(app.status)}`}>
-                      {app.status === 'shortlisted' ? '⭐ Shortlisted' : app.status === 'interview' ? '📅 Interview' : (app.status || 'Under Review')}
-                    </span>
-                    <span className="text-[11px] font-bold text-[#94a3b8]">
-                      {Math.round((new Date() - new Date(app.uploaded_at)) / 86400000)} days ago
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-right pr-4">
-                <div className="text-[26px] font-black text-[#111827] group-hover:text-indigo-600 transition-colors">
-                  {Math.round(app.score)}%
-                </div>
-                <div className="w-20 h-2 bg-gray-100 rounded-full mt-1 overflow-hidden shadow-inner">
-                  <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${app.score}%` }}></div>
-                </div>
-              </div>
-            </div>
+          filteredApps.map((app, i) => (
+            <AppCard key={app.id} app={app} idx={i} />
           ))
         )}
       </div>

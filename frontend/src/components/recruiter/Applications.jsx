@@ -293,6 +293,28 @@ export default function Applications() {
                    </div>
                 </div>
               </div>
+
+              {/* Action Buttons */}
+              <div className="pt-6 border-t border-gray-100 flex gap-4">
+                 <button 
+                   onClick={() => {
+                     handleUpdateStatus(selectedCandidate.id, 'shortlisted');
+                     setSelectedCandidate(null);
+                   }}
+                   className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition active:scale-95"
+                 >
+                    Shortlist Candidate
+                 </button>
+                 <button 
+                   onClick={() => {
+                     handleUpdateStatus(selectedCandidate.id, 'rejected');
+                     setSelectedCandidate(null);
+                   }}
+                   className="flex-1 bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition active:scale-95"
+                 >
+                    Reject Application
+                 </button>
+              </div>
             </div>
           </div>
         </div>

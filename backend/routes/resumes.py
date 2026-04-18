@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
-from models.database import db, Resume, Job, User, AuditLog, FairnessLog
+from models.database import db, Resume, Job, User, AuditLog, FairnessLog, CandidateProfile
 from utils.auth import token_required
 from utils.file_utils import allowed_file, extract_text, anonymize_text
 from services.bert_service import get_bert_service
@@ -26,13 +26,29 @@ def upload_resume():
         
         user = User.query.get(request.user_id)
         if not user:
-            return jsonify({'error': 'Candidate profile not found'}), 404
+            return jsonify({'error': 'User not found'}), 404
             
-        candidate_name = user.name
-        candidate_email = user.email
-        
         if not job_id:
             return jsonify({'error': 'Missing jobID'}), 400
+            
+        # Logical Error Correction: Check for duplicate applications
+        existing_application = Resume.query.filter_by(uploader_id=request.user_id, job_id=int(job_id)).first()
+        if existing_application and user.role == 'candidate':
+            return jsonify({'error': 'You have already applied for this position.'}), 400
+
+        # Fix Attribution Bug: Use provided info if recruiter is uploading for someone else
+        if user.role == 'recruiter':
+            candidate_name = request.form.get('candidateName')
+            candidate_email = request.form.get('candidateEmail')
+            
+            if not candidate_name or not candidate_email:
+                return jsonify({'error': 'Recruiters must provide candidate name and email to upload on their behalf.'}), 400
+                
+            if candidate_email == user.email:
+                return jsonify({'error': 'Recruiters cannot apply for jobs using their own recruiter account.'}), 400
+        else:
+            candidate_name = user.name
+            candidate_email = user.email
         
         if not allowed_file(file.filename):
             logger.error(f"Upload failed: File type {file.filename} not allowed")
@@ -42,8 +58,27 @@ def upload_resume():
         timestamp = int(datetime.utcnow().timestamp())
         filename = f"{timestamp}_{filename}"
         
+        # Get Candidate Metadata for Fairness Analysis
+        profile = CandidateProfile.query.filter_by(user_id=request.user_id).first()
+        metadata = {}
+        if profile:
+            metadata = {
+                'candidate_gender': getattr(profile, 'gender', None), # Assuming gender might be added or infer from elsewhere
+                'candidate_location': profile.location,
+                'candidate_education_level': getattr(profile, 'education_level', None)
+            }
+        
         upload_folder = current_app.config['UPLOAD_FOLDER']
         os.makedirs(upload_folder, exist_ok=True)
+        
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        if file_size > current_app.config.get('MAX_FILE_SIZE', 5 * 1024 * 1024):
+            return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
+
         filepath = os.path.join(upload_folder, filename)
         file.save(filepath)
         
@@ -53,7 +88,10 @@ def upload_resume():
             candidate_name=candidate_name,
             candidate_email=candidate_email,
             job_id=int(job_id),
-            uploader_id=request.user_id
+            uploader_id=request.user_id,
+            candidate_location=metadata.get('candidate_location'),
+            candidate_gender=metadata.get('candidate_gender'),
+            candidate_education_level=metadata.get('candidate_education_level')
         )
         
         db.session.add(resume)
@@ -198,6 +236,10 @@ def get_resumes_by_job(job_id):
         if not job:
             return jsonify({'error': 'Job not found'}), 404
         
+        # Authorization: Only the recruiter who posted the job can see all resumes
+        if job.recruiter_id != request.user_id:
+            return jsonify({'error': 'Unauthorized access to job resumes'}), 403
+        
         results = db.session.query(Resume, User).filter(Resume.job_id == job_id).join(User, Resume.uploader_id == User.id).order_by(Resume.match_score.desc()).all()
         
         resumes_data = []
@@ -209,7 +251,7 @@ def get_resumes_by_job(job_id):
                 'rank': i,
                 'name': display_name,
                 'email': uploader.email if uploader.role == 'candidate' else resume.candidate_email,
-                'score': round(resume.match_score, 2),
+                'score': round(resume.match_score or 0, 2),
                 'skills': resume.skills or [],
                 'status': resume.status,
                 'ai_analysis': resume.ai_analysis,
@@ -235,7 +277,7 @@ def get_resume(resume_id):
             'name': resume.candidate_name,
             'email': resume.candidate_email,
             'phone': resume.candidate_phone,
-            'score': round(resume.match_score, 2),
+            'score': round(resume.match_score or 0, 2),
             'skills': resume.skills or [],
             'experience_years': resume.experience_years,
             'education': resume.education,
@@ -250,12 +292,24 @@ def get_resume(resume_id):
         return jsonify({'error': str(e)}), 500
 
 @resumes_bp.route('/download/<int:resume_id>', methods=['GET'])
+@token_required
 def download_resume(resume_id):
     try:
         resume = Resume.query.get(resume_id)
         if not resume:
             return jsonify({'error': 'Resume not found'}), 404
         
+        # Authorization check
+        is_uploader = resume.uploader_id == request.user_id
+        is_job_recruiter = False
+        
+        job = Job.query.get(resume.job_id)
+        if job and job.recruiter_id == request.user_id:
+            is_job_recruiter = True
+            
+        if not (is_uploader or is_job_recruiter):
+            return jsonify({'error': 'Unauthorized: Access denied to this file'}), 403
+            
         abs_path = os.path.abspath(resume.file_path)
         if not os.path.exists(abs_path):
             logger.error(f"File not found: {abs_path}")
@@ -270,6 +324,10 @@ def download_resume(resume_id):
 @token_required
 def update_resume_status(resume_id):
     try:
+        user = User.query.get(request.user_id)
+        if not user or user.role != 'recruiter':
+            return jsonify({'error': 'Unauthorized. Only recruiters can update status.'}), 403
+            
         resume = Resume.query.get(resume_id)
         if not resume:
             return jsonify({'error': 'Resume not found'}), 404
@@ -293,6 +351,17 @@ def delete_resume(resume_id):
         resume = Resume.query.get(resume_id)
         if not resume:
             return jsonify({'error': 'Resume not found'}), 404
+            
+        # Only uploader or the job's recruiter can delete
+        is_owner = resume.uploader_id == request.user_id
+        is_job_recruiter = False
+        
+        job = Job.query.get(resume.job_id)
+        if job and job.recruiter_id == request.user_id:
+            is_job_recruiter = True
+            
+        if not (is_owner or is_job_recruiter):
+            return jsonify({'error': 'Unauthorized deletion'}), 403
         
         if os.path.exists(resume.file_path):
             os.remove(resume.file_path)

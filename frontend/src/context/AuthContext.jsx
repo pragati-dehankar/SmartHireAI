@@ -8,16 +8,24 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [loadingInitial, setLoadingInitial] = useState(true);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setIsAuthenticated(true);
-    } else {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-    }
+    const initAuth = () => {
+      const savedUser = localStorage.getItem('user');
+      const savedToken = localStorage.getItem('token');
+      if (savedUser && savedToken) {
+        try {
+          setUser(JSON.parse(savedUser));
+          setIsAuthenticated(true);
+        } catch (e) {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        }
+      }
+      setLoadingInitial(false);
+    };
+    initAuth();
   }, []);
 
   const login = async (email, password) => {
@@ -68,7 +76,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout, loading, loadingInitial }}>
       {children}
     </AuthContext.Provider>
   );

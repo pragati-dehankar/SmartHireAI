@@ -32,7 +32,10 @@ def candidate_profile():
                 'phone': profile.phone or '',
                 'location': profile.location or '',
                 'jobTitle': profile.job_title or '',
-                'job_title': profile.job_title or '' # Both casing for compatibility
+                'job_title': profile.job_title or '',
+                'github_url': profile.github_url or '',
+                'portfolio_url': profile.portfolio_url or '',
+                'skills': profile.skills or []
             }), 200
             
         elif request.method == 'POST':
@@ -47,6 +50,9 @@ def candidate_profile():
             profile.phone = data.get('phone', profile.phone)
             profile.location = data.get('location', profile.location)
             profile.job_title = data.get('jobTitle', data.get('job_title', profile.job_title))
+            profile.github_url = data.get('github_url', profile.github_url)
+            profile.portfolio_url = data.get('portfolio_url', profile.portfolio_url)
+            profile.skills = data.get('skills', profile.skills)
             
             db.session.commit()
             return jsonify({'message': 'Profile updated successfully'}), 200
@@ -60,10 +66,17 @@ def candidate_profile():
 @token_required
 def get_candidate_applications():
     try:
-        resumes = Resume.query.filter_by(candidate_email=request.user_email).order_by(Resume.uploaded_at.desc()).all()
+        # Get all resumes for the user, ordered by date
+        resumes = Resume.query.filter_by(uploader_id=request.user_id).order_by(Resume.uploaded_at.desc()).all()
         
         apps_data = []
+        seen_jobs = set()
+        
         for resume in resumes:
+            # Only include the latest application per job to avoid duplication
+            if resume.job_id in seen_jobs:
+                continue
+                
             job = Job.query.get(resume.job_id)
             apps_data.append({
                 'id': resume.id,
@@ -73,8 +86,10 @@ def get_candidate_applications():
                 'status': resume.status,
                 'score': round(resume.match_score, 2),
                 'uploaded_at': resume.uploaded_at.isoformat(),
-                'location': job.location if job else 'Remote'
+                'location': job.location if job else 'Remote',
+                'salary_range': job.salary_range if job else 'Not specified'
             })
+            seen_jobs.add(resume.job_id)
         
         return jsonify(apps_data), 200
     except Exception as e:
@@ -93,7 +108,13 @@ def get_candidate_context_analysis():
             
         skill_relevance = round(resume.match_score, 2)
         experience_depth = min(100, (resume.experience_years or 0) * 10)
-        portfolio_depth = 85 if profile and profile.location else 60
+        
+        # Correct Portfolio Logic: Check for real portfolio/github URLs
+        portfolio_depth = 40 # Base
+        if profile:
+            if profile.portfolio_url: portfolio_depth += 30
+            if profile.github_url: portfolio_depth += 25
+            
         project_relevance = min(100, skill_relevance + 5)
         
         analysis = {

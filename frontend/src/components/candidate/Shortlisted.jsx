@@ -9,7 +9,6 @@ export default function Shortlisted() {
       const fetchShortlisted = async () => {
          try {
             const res = await apiClient.get('/api/candidate/applications');
-            // Filter for shortlisted or qualified status
             const filtered = res.data.filter(app =>
                app.status === 'shortlisted' || app.status === 'qualified' || app.status === 'interview'
             );
@@ -23,91 +22,113 @@ export default function Shortlisted() {
       fetchShortlisted();
    }, []);
 
-   if (loading) return <div className="p-8 text-center text-gray-500 font-semibold animate-pulse">Retrieving your success matches...</div>;
+   if (loading) return (
+      <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
+         <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+         <div className="font-black text-slate-400 text-xs uppercase tracking-[0.2em]">Retreiving Starred Matches</div>
+      </div>
+   );
 
    return (
-      <div className="animate-in fade-in duration-500 space-y-8 max-w-6xl mx-auto">
-         {/* HEADER */}
-         <div className="flex items-center gap-3">
-            <span className="text-2xl">⭐</span>
-            <h2 className="text-[24px] font-extrabold text-[#111827] tracking-tight">You've Been Shortlisted ({shortlisted.length})</h2>
+      <div className="animate-fade-in space-y-8 max-w-6xl mx-auto">
+         {/* Page Header */}
+         <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl shadow-sm border border-amber-100">⭐</div>
+            <div>
+               <h2 className="text-3xl font-black text-slate-900 tracking-tight">Active Shortlists</h2>
+               <p className="text-slate-500 font-medium mt-1">Found highly relevant roles where recruiters are moving you forward.</p>
+            </div>
          </div>
 
          <div className="space-y-6">
             {shortlisted.length === 0 ? (
-               <div className="bg-white rounded-[2rem] p-16 text-center border border-[#e5e7eb] border-dashed">
-                  <div className="text-5xl mb-6 grayscale">🚀</div>
-                  <h3 className="text-[18px] font-extrabold text-[#111827]">Almost there!</h3>
-                  <p className="text-[#6b7280] text-[14px] mt-2 max-w-sm mx-auto">Keep applying and optimizing your profile. Your shortlisted opportunities will appear here once recruiters move you forward.</p>
+               <div className="card p-20 text-center flex flex-col items-center justify-center border-dashed border-2 opacity-50">
+                  <div className="text-6xl mb-6">🚀</div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">Momentum Building</h3>
+                  <p className="text-slate-500 font-medium mt-2 max-w-sm mx-auto">Keep optimizing your profile and submitting applications. Your shortlists will populate as recruiters analyze your matches.</p>
                </div>
             ) : (
-               shortlisted.map((app) => (
-                  <div key={app.id} className="bg-white rounded-[2rem] p-8 shadow-sm border border-[#e5e7eb] relative overflow-hidden group hover:shadow-md transition-shadow">
+               shortlisted.map((app, i) => {
+                  const score = Math.round(app.score || 0);
+                  return (
+                     <div key={app.id} className="card p-8 group animate-fade-up relative overflow-hidden" style={{ animationDelay: `${i * 0.1}s` }}>
+                        
+                        {/* Background glow for high matches */}
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50/30 rounded-full blur-3xl -mr-32 -mt-32" />
 
-                     {/* Header Section */}
-                     <div className="flex justify-between items-start mb-8">
-                        <div className="flex gap-6 items-center">
-                           <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl border border-gray-100 group-hover:scale-105 transition-transform">🏢</div>
-                           <div>
-                              <h2 className="text-[24px] font-extrabold text-[#111827] tracking-tight leading-tight uppercase font-heading">{app.jobTitle}</h2>
-                              <p className="text-[#64748b] text-[14px] font-bold mt-1">{app.company} · {app.location} · $120K–$160K</p>
-                              <div className="flex gap-3 mt-4">
-                                 <span className="bg-[#f0fdf4] text-[#166534] border border-[#dcfce7] px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider">
-                                    ⭐ Shortlisted {Math.round((new Date() - new Date(app.uploaded_at)) / 3600000)} hrs ago
-                                 </span>
-                                 <span className="bg-[#fff7ed] text-[#9a3412] border border-[#ffedd5] px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider">
-                                    {app.status === 'interview' ? 'Interview Scheduled' : 'Technical Interview Next'}
-                                 </span>
+                        {/* Top Info */}
+                        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start gap-8 mb-8 pb-8 border-b border-slate-50">
+                           <div className="flex gap-6 items-center flex-1">
+                              <div className="w-20 h-20 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-4xl shadow-sm border border-slate-100 group-hover:scale-110 group-hover:bg-amber-50 transition-all font-black text-slate-300">
+                                 {app.company?.charAt(0) || '🏢'}
+                              </div>
+                              <div>
+                                 <div className="flex items-center gap-3 flex-wrap mb-1">
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">{app.jobTitle}</h2>
+                                    <span className="tag tag-emerald">⭐ Top Ranked</span>
+                                 </div>
+                                 <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-[11px]">{app.company} · {app.location || 'Distributed'}</p>
+                                 
+                                 <div className="flex gap-2">
+                                    <span className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-emerald-100 italic">
+                                       Highly Selective Match
+                                    </span>
+                                    {app.status === 'interview' && (
+                                       <span className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-indigo-100">
+                                          📅 Ready for Video Sync
+                                       </span>
+                                    )}
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div className="bg-slate-50 border border-slate-100 p-6 rounded-[2rem] text-center min-w-[160px] shadow-sm">
+                              <div className="text-4xl font-black text-indigo-600 leading-none mb-1">{score}%</div>
+                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BERT Match Factor</div>
+                              <div className="w-full bg-slate-200 h-1 rounded-full mt-3 overflow-hidden">
+                                 <div className="h-full bg-indigo-600 animate-progress" style={{ width: `${score}%` }} />
                               </div>
                            </div>
                         </div>
-                        <div className="bg-[#f8fafc] border border-[#e2e8f0] p-6 rounded-[1.5rem] text-center shadow-sm min-w-[140px]">
-                           <div className="text-[36px] font-black text-indigo-600 leading-none">{Math.round(app.score)}%</div>
-                           <div className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.1em] mt-2">AI Context Score</div>
-                        </div>
-                     </div>
 
-                     {/* Reasoning Section (Screenshot Style) */}
-                     <div className="mb-8">
-                        <div className="flex items-center gap-3 mb-6">
-                           <span className="text-2xl">🧠</span>
-                           <h3 className="text-[15px] font-black text-[#1e293b] uppercase tracking-wide">Why the Recruiter's AI Picked You</h3>
-                           <span className="bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0] px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest">Context Analysis</span>
-                        </div>
+                        {/* Insight Section */}
+                        <div className="relative z-10 mb-8 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
+                           <div className="flex items-center gap-2 mb-5 pl-1">
+                              <span className="text-xl">⬡</span>
+                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Neural Recommendation Trace</h3>
+                           </div>
 
-                        <div className="grid md:grid-cols-2 gap-4">
-                           {[
-                              { title: 'Skill Semantic Match', desc: `React + TypeScript aligned ${Math.round(app.score)}% via BERT matching.`, icon: '⚡', tag: 'Strong' },
-                              { title: 'Work Style Context', desc: 'Remote preference matched to their culture signal.', icon: '🌐', tag: 'Good' }
-                           ].map((item, idx) => (
-                              <div key={idx} className="bg-[#f8fafc] border border-[#f1f5f9] p-5 rounded-2xl flex items-start gap-4">
-                                 <span className="text-xl mt-1">{item.icon}</span>
-                                 <div>
-                                    <h4 className="text-[14px] font-extrabold text-[#111827]">{item.title}</h4>
-                                    <p className="text-[12.5px] text-[#64748b] font-semibold mt-1 leading-relaxed">{item.desc}</p>
-                                    <div className={`inline-block mt-3 px-2 py-0.5 rounded text-[10px] font-black uppercase ${item.tag === 'Strong' ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#dbeafe] text-[#1e40af]'}`}>
-                                       {item.tag}
+                           <div className="grid md:grid-cols-2 gap-4">
+                              {[
+                                 { title: 'Technical Alignment', desc: `Your stack matches ${score}% with the recruiter's core semantic requirements.`, icon: '⚡', color: 'emerald' },
+                                 { title: 'Role Signal', desc: 'Previous projects demonstrate production-scale impact required.', icon: '📊', color: 'indigo' }
+                              ].map((item, idx) => (
+                                 <div key={idx} className="bg-white p-5 rounded-2xl flex items-start gap-4 shadow-sm border border-slate-100">
+                                    <span className={`text-xl mt-0.5 text-${item.color}-500`}>{item.icon}</span>
+                                    <div>
+                                       <h4 className="text-sm font-black text-slate-900 mb-1">{item.title}</h4>
+                                       <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.desc}</p>
                                     </div>
                                  </div>
-                              </div>
-                           ))}
+                              ))}
+                           </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="relative z-10 flex gap-4 flex-wrap">
+                           <button className="flex-1 btn-primary py-4 px-8 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-50">
+                              📅 Pick Interview Slot
+                           </button>
+                           <button className="flex-1 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-colors shadow-lg shadow-slate-200">
+                              💬 Sync with Recruiter
+                           </button>
+                           <button className="px-8 py-4 border-2 border-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-2xl font-black text-xs uppercase tracking-widest">
+                              Job Details
+                           </button>
                         </div>
                      </div>
-
-                     {/* Footer Actions */}
-                     <div className="flex gap-4 pt-6 border-t border-gray-50">
-                        <button className="bg-[#10b981] text-white px-8 py-3.5 rounded-xl font-black text-[14px] hover:bg-[#059669] transition shadow-lg shadow-emerald-100 flex items-center gap-2">
-                           📅 Schedule Interview
-                        </button>
-                        <button className="bg-[#111827] text-white px-8 py-3.5 rounded-xl font-black text-[14px] hover:bg-black transition shadow-md shadow-gray-100 flex items-center gap-2">
-                           💬 Message Recruiter
-                        </button>
-                        <button className="bg-white text-[#475569] px-8 py-3.5 rounded-xl font-black text-[14px] border border-[#e5e7eb] hover:bg-gray-50 transition shadow-sm">
-                           View Job Details
-                        </button>
-                     </div>
-                  </div>
-               ))
+                  );
+               })
             )}
          </div>
       </div>

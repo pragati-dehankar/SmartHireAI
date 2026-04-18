@@ -24,6 +24,9 @@ class CandidateProfile(db.Model):
     phone = db.Column(db.String(50))
     location = db.Column(db.String(255))
     job_title = db.Column(db.String(255))
+    github_url = db.Column(db.String(255))
+    portfolio_url = db.Column(db.String(255))
+    skills = db.Column(db.JSON, default=list)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

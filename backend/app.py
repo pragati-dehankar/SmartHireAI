@@ -1,5 +1,8 @@
-# app.py
 import os
+from dotenv import load_dotenv
+
+# Load environment variables before other imports
+load_dotenv()
 import logging
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -70,8 +73,8 @@ def create_app(config_name='default'):
     # Ensure upload folder exists
     with app.app_context():
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        # Uncomment below if you want to auto-create tables
-        # db.create_all()
+        # Auto-create tables for development
+        db.create_all()
 
     return app
 

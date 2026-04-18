@@ -5,7 +5,8 @@ import apiClient from '../../services/api';
 export default function ProfilePage() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', location: '', job_title: '', github_url: '', portfolio_url: '', skills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'CSS']
+    name: '', email: '', phone: '', location: '', job_title: '', github_url: '', portfolio_url: '', skills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'Tailwind'],
+    visible: true
   });
   const [newSkill, setNewSkill] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,12 +30,22 @@ export default function ProfilePage() {
   }, [user]);
 
   const handleSave = async () => {
+    if (!formData.name || formData.name.length < 2) {
+       alert('Neural identity requires a valid name (min 2 chars).');
+       return;
+    }
+    if (!formData.phone || formData.phone.length < 5) {
+       alert('Contact signal (phone) is required for recruiter uplink.');
+       return;
+    }
+
     setSaving(true);
     try {
        await apiClient.post('/api/candidate/profile', formData);
-       alert('Profile updated successfully!');
+       alert('Profile synchronized successfully!');
     } catch (err) {
        console.error("Save error:", err);
+       alert('Sync failure: ' + (err.response?.data?.error || 'Unknown network interference'));
     } finally {
        setSaving(false);
     }
@@ -42,6 +53,7 @@ export default function ProfilePage() {
 
   const addSkill = (e) => {
     if (e.key === 'Enter' && newSkill.trim()) {
+      e.preventDefault();
       if (!formData.skills.includes(newSkill.trim())) {
         setFormData({ ...formData, skills: [...formData.skills, newSkill.trim()] });
       }
@@ -53,74 +65,71 @@ export default function ProfilePage() {
     setFormData({ ...formData, skills: formData.skills.filter(s => s !== skill) });
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500 font-semibold animate-pulse">Syncing your profile data...</div>;
+  if (loading) return (
+     <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+        <div className="font-black text-slate-400 text-xs uppercase tracking-[0.2em]">Accessing Profile Nodes</div>
+     </div>
+  );
 
   return (
-    <div className="animate-in fade-in duration-500 space-y-8 max-w-7xl mx-auto pb-12">
-      {/* PAGE HEADER */}
-      <div className="flex justify-between items-center bg-white rounded-[1.5rem] p-8 shadow-sm border border-[#e5e7eb]">
+    <div className="animate-fade-in space-y-8 max-w-6xl mx-auto pb-12">
+      {/* View Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-50 gap-6">
          <div>
-            <h2 className="text-[26px] font-extrabold text-[#111827] tracking-tight leading-none">My Profile</h2>
-            <p className="text-[#6b7280] text-[15px] font-medium mt-2">Manage your personal and professional information</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Identity & Profile</h2>
+            <p className="text-slate-500 font-medium mt-1">Manage how recruiters and the BERT engine perceive your professional identity.</p>
          </div>
-         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-[#f0f9ff] text-[#0369a1] px-4 py-2 rounded-full text-[12px] font-black border border-[#bae6fd]">
-               <span className="w-2 h-2 bg-[#0ea5e9] rounded-full animate-pulse"></span>
-               AI Matching Active
-            </div>
-            <button className="w-10 h-10 rounded-full bg-white border border-[#e5e7eb] flex items-center justify-center text-yellow-500 shadow-sm">🔔</button>
-            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md">
-               {formData.name?.charAt(0) || 'U'}
-            </div>
-         </div>
+         <button 
+           onClick={handleSave} 
+           disabled={saving}
+           className="btn-primary rounded-2xl px-12 py-4 shadow-xl"
+         >
+            {saving ? 'Synchronizing...' : 'Save Profile Changes'}
+         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* LEFT COLUMN: PROFILE INFO */}
+        {/* Core Identity Details */}
         <div className="lg:col-span-2 space-y-8">
-           <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-[#e5e7eb] relative">
-              <div className="flex justify-between items-center mb-12">
-                 <div className="flex items-center gap-6">
-                    <div className="relative">
-                       <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-indigo-100 rotate-3 transition-transform hover:rotate-0">
-                          {formData.name?.charAt(0) || 'S'}
-                       </div>
-                       <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-black border-4 border-white rounded-xl flex items-center justify-center text-[12px]">✨</div>
+           <div className="card p-10 relative overflow-hidden">
+              <div className="flex items-center gap-8 mb-12">
+                 <div className="relative group">
+                    <div className="w-28 h-28 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white text-5xl font-black shadow-2xl transition-transform group-hover:rotate-6">
+                       {formData.name?.charAt(0) || 'U'}
                     </div>
-                    <div>
-                       <h3 className="text-[32px] font-black text-[#111827] tracking-tighter leading-none">{formData.name || 'Full Name'}</h3>
-                       <p className="text-[#64748b] text-[15px] font-bold mt-2 uppercase tracking-wide">
-                          {formData.job_title || 'Design Your Future'} · {formData.location || 'Everywhere'}
-                       </p>
+                    <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-900 border-4 border-white rounded-2xl flex items-center justify-center text-xl shadow-lg">✨</div>
+                 </div>
+                 <div>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">{formData.name || 'Set Name'}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                       <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">{formData.job_title || 'Expert Candidate'}</span>
+                       <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{formData.location || 'Global Target'}</span>
                     </div>
                  </div>
-                 <button 
-                   onClick={handleSave} 
-                   className="bg-[#0ea5e9] text-white px-10 py-4 rounded-2xl font-black text-[15px] hover:bg-[#0284c7] transition hover:scale-105 active:scale-95 shadow-xl shadow-sky-100 disabled:opacity-50"
-                   disabled={saving}
-                 >
-                    {saving ? 'Saving...' : 'Save Profile'}
-                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  {[
-                   { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Sarah Johnson' },
-                   { label: 'Email Address', key: 'email', type: 'email', placeholder: 'sarah@example.com', disabled: true },
-                   { label: 'Phone Number', key: 'phone', type: 'text', placeholder: '+1 (555) 123-4567' },
-                   { label: 'Active Location', key: 'location', type: 'text', placeholder: 'San Francisco, CA' },
-                   { label: 'Current Job Title', key: 'job_title', type: 'text', placeholder: 'Senior Frontend Developer' },
-                   { label: 'GitHub Handle', key: 'github_url', type: 'text', placeholder: 'github.com/username' },
-                   { label: 'Portfolio Website', key: 'portfolio_url', type: 'text', placeholder: 'https://mysite.com' }
-                 ].map((field, idx) => (
-                   <div key={field.key} className={`space-y-3 ${field.key === 'name' ? 'md:col-span-2' : ''}`}>
-                      <label className="text-[12px] font-black text-[#1e293b] uppercase tracking-widest pl-1">{field.label}</label>
+                   { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Identity name for BERT parsing' },
+                   { label: 'Primary Email', key: 'email', type: 'email', placeholder: 'Locked as login identifier', disabled: true },
+                   { label: 'Neural Contact', key: 'phone', type: 'text', placeholder: '+1 (555) 000-0000' },
+                   { label: 'Current Base', key: 'location', type: 'text', placeholder: 'City, Country' },
+                   { label: 'Primary Role', key: 'job_title', type: 'text', placeholder: 'Senior Frontend Architect' },
+                   { label: 'GitHub Ecosystem', key: 'github_url', type: 'text', placeholder: 'github.com/yourhandle' },
+                   { label: 'Digital Portfolio', key: 'portfolio_url', type: 'text', placeholder: 'yourname.dev' }
+                 ].map((field) => (
+                   <div key={field.key} className={field.key === 'name' ? 'md:col-span-2' : ''}>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 pl-1">{field.label}</label>
                       <input 
                         type={field.type}
                         value={formData[field.key] || ''}
                         disabled={field.disabled}
                         onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                        className={`w-full ${field.disabled ? 'bg-gray-50 text-gray-400 italic' : 'bg-[#fcfcfd]'} border border-[#e5e7eb] rounded-2xl px-6 py-4 text-[15px] font-bold text-[#1e293b] focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all shadow-sm`}
+                        className={`w-full px-5 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                           field.disabled ? 'bg-slate-50 border-slate-50 text-slate-300' : 'bg-white border-slate-50 focus:border-indigo-600 focus:outline-none'
+                        }`}
                         placeholder={field.placeholder}
                       />
                    </div>
@@ -129,63 +138,72 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* RIGHT COLUMN: SKILLS & STRENGTH */}
-        <div className="lg:col-span-1 space-y-8">
-           {/* SKILLS CARD */}
-           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-[#e5e7eb] space-y-6">
-              <div className="flex justify-between items-center">
-                 <h4 className="text-[18px] font-black text-[#111827] tracking-tight">Technical Arsenal</h4>
-                 <div className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">Verified</div>
+        {/* Sidebar: Skills & AI Status */}
+        <div className="space-y-8">
+           {/* Technical Arsenal */}
+           <div className="card p-8">
+              <div className="flex justify-between items-center mb-8">
+                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Stack Inventory</h4>
+                 <div className="bert-live-indicator"><div className="dot" /> Verified</div>
               </div>
               <div className="flex flex-wrap gap-2">
                  {formData.skills.map((skill, idx) => (
-                   <span key={idx} className="group bg-[#f8fafc] text-[#475569] border border-[#e5e7eb] px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm hover:border-pink-300 hover:text-pink-600 transition-colors flex items-center gap-2">
-                      {skill}
-                      <button onClick={() => removeSkill(skill)} className="opacity-0 group-hover:opacity-100 transition-opacity">×</button>
-                   </span>
+                    <span key={idx} className="tag tag-indigo py-2 px-4 text-xs group flex items-center gap-2">
+                       {skill}
+                       <button onClick={() => removeSkill(skill)} className="opacity-40 hover:opacity-100 transition-opacity">✕</button>
+                    </span>
                  ))}
               </div>
-              <div className="pt-4 border-t border-gray-50">
+              <div className="mt-8 pt-6 border-t border-slate-50">
                  <input 
                    type="text" 
                    value={newSkill}
                    onChange={(e) => setNewSkill(e.target.value)}
                    onKeyDown={addSkill}
-                   placeholder="Type a skill and press Enter"
-                   className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-6 py-4 text-[14px] font-bold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-50 transition-all border-dashed"
+                   placeholder="Add neural skill signal..."
+                   className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl px-5 py-3 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 focus:border-solid transition-all"
                  />
               </div>
            </div>
 
-           {/* CONTEXT STRENGTH CARD */}
-           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-[#e5e7eb] space-y-10">
-              <h4 className="text-[18px] font-black text-[#111827] tracking-tight">Context Profile Strength</h4>
+           {/* Profile Performance */}
+           <div className="card p-8 space-y-10">
+              <div className="flex justify-between items-center">
+                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Profile Visibility</h4>
+                 <button 
+                   onClick={() => setFormData(prev => ({ ...prev, visible: !prev.visible }))}
+                   className={`w-12 h-6 rounded-full transition-all relative ${formData.visible ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                 >
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.visible ? 'right-1' : 'left-1'}`} />
+                 </button>
+              </div>
+              
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Signal Integrity</h4>
               <div className="space-y-8">
                  {[
-                   { label: 'Skill Keywords', val: 95, color: 'from-indigo-500 to-indigo-600' },
-                   { label: 'Project Descriptions', val: 88, color: 'from-sky-500 to-sky-600' },
-                   { label: 'Role History', val: 92, color: 'from-purple-500 to-purple-600' },
-                   { label: 'Portfolio / GitHub', val: 40, color: 'from-orange-500 to-amber-500' },
-                   { label: 'About Me Bio', val: 70, color: 'from-emerald-500 to-teal-500' }
+                   { label: 'Semantic Keywords', val: 92, color: 'indigo' },
+                   { label: 'Experience Depth', val: 85, color: 'violet' },
+                   { label: 'Contact Stability', val: 100, color: 'emerald' },
+                   { label: 'Social Velocity', val: 45, color: 'amber' }
                  ].map((stat, idx) => (
-                   <div key={idx} className="space-y-3">
+                   <div key={idx} className="space-y-2.5">
                       <div className="flex justify-between items-center">
-                         <span className="text-[13px] font-bold text-[#64748b]">{stat.label}</span>
-                         <span className={`text-[14px] font-black ${stat.val < 50 ? 'text-orange-600' : 'text-indigo-600'}`}>{stat.val}%</span>
+                         <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{stat.label}</span>
+                         <span className={`text-xs font-black text-${stat.color}-600`}>{stat.val}%</span>
                       </div>
-                      <div className="relative h-2.5 bg-gray-100 rounded-full overflow-hidden shadow-inner border border-white">
+                      <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden flex border border-slate-50 p-0.5">
                          <div 
-                           className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-[1500ms] shadow-lg`} 
+                           className={`h-full bg-${stat.color}-600 rounded-full transition-all duration-[2000ms] shadow-inner`} 
                            style={{ width: `${stat.val}%` }}
-                         ></div>
+                         />
                       </div>
                    </div>
                  ))}
               </div>
               
-              <div className="bg-[#f0f9ff]/50 p-5 rounded-2xl border border-indigo-50">
-                 <p className="text-[12px] text-indigo-700 font-bold leading-relaxed italic">
-                    💡 "Candidates with a Portfolio link are 5x more likely to be shortlisted for Lead roles."
+              <div className="bg-indigo-50 p-6 rounded-[1.5rem] border border-indigo-100">
+                 <p className="text-[11px] text-indigo-700 font-bold leading-relaxed italic">
+                    💡 "Profiles with verified GitHub handles show a 40% higher shortlist probability in the current node."
                  </p>
               </div>
            </div>

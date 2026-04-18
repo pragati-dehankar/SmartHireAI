@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 @token_required
 def create_job():
     try:
+        user = User.query.get(request.user_id)
+        if not user or user.role != 'recruiter':
+            return jsonify({'error': 'Unauthorized. Only recruiters can create jobs.'}), 403
+            
         data = request.get_json()
         
         if not data or 'title' not in data or 'description' not in data:
@@ -65,6 +69,32 @@ def create_job():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@jobs_bp.route('/stats', methods=['GET'])
+@token_required
+def get_job_stats():
+    try:
+        user_id = request.user_id
+        active_jobs = Job.query.filter_by(recruiter_id=user_id, status='open').count()
+        
+        # Total applicants across all jobs of this recruiter
+        total_applicants = db.session.query(Resume).join(Job).filter(Job.recruiter_id == user_id).count()
+        
+        # Qualified applicants (score >= 85)
+        qualified_applicants = db.session.query(Resume).join(Job).filter(Job.recruiter_id == user_id, (Resume.match_score or 0) >= 85).count()
+        
+        # Candidates in interview status
+        in_interview = db.session.query(Resume).join(Job).filter(Job.recruiter_id == user_id, Resume.status == 'interview').count()
+        
+        return jsonify({
+            'activeJobs': active_jobs,
+            'totalApplicants': total_applicants,
+            'qualifiedCandidates': qualified_applicants,
+            'inInterview': in_interview
+        }), 200
+    except Exception as e:
+        logger.error(f"Error fetching job stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @jobs_bp.route('', methods=['GET'])
 @token_required
 def list_jobs():
@@ -80,7 +110,7 @@ def list_jobs():
         for job in jobs:
             try:
                 resume_count = Resume.query.filter_by(job_id=job.id).count()
-                qualified_count = Resume.query.filter_by(job_id=job.id).filter(Resume.match_score >= 85).count()
+                qualified_count = Resume.query.filter_by(job_id=job.id).filter((Resume.match_score or 0) >= 85).count()
                 in_progress_count = Resume.query.filter_by(job_id=job.id).filter(Resume.status.in_(['reviewed', 'pending', 'new'])).count()
                 
                 recruiter = User.query.get(job.recruiter_id)
@@ -139,7 +169,7 @@ def get_job(job_id):
             'salary_range': job.salary_range,
             'status': job.status,
             'total_resumes': len(resumes),
-            'avg_score': round(np.mean([r.match_score for r in resumes if r.match_score > 0]), 2) if resumes and any(r.match_score > 0 for r in resumes) else 0,
+            'avg_score': round(np.mean([r.match_score for r in resumes if (r.match_score or 0) > 0]), 2) if resumes and any((r.match_score or 0) > 0 for r in resumes) else 0,
             'created_at': job.created_at.isoformat(),
             'recruiter': {
                 'name': recruiter.name if recruiter else 'Unknown',

@@ -130,19 +130,21 @@ class BertService:
         
         skills_idx = text_lower.find('skill')
         if skills_idx != -1:
-            next_section = min([
+            indices = [
                 text_lower.find('experience', skills_idx + 1),
-                text_lower.find('education', skills_idx + 1),
-                len(text)
-            ])
+                text_lower.find('education', skills_idx + 1)
+            ]
+            valid_indices = [i for i in indices if i != -1]
+            next_section = min(valid_indices) if valid_indices else len(text)
             sections['skills'] = text[skills_idx:next_section]
         
         exp_idx = text_lower.find('experience')
         if exp_idx != -1:
-            next_section = min([
-                text_lower.find('education', exp_idx + 1),
-                len(text)
-            ])
+            indices = [
+                text_lower.find('education', exp_idx + 1)
+            ]
+            valid_indices = [i for i in indices if i != -1]
+            next_section = min(valid_indices) if valid_indices else len(text)
             sections['experience'] = text[exp_idx:next_section]
         
         edu_idx = text_lower.find('education')
